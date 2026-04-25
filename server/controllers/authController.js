@@ -33,7 +33,8 @@ exports.register = async (req, res) => {
     await sendOTPEmail(email, otp, "account_verification");
 
     res.status(201).json({
-      message: "OTP sent to email. Please verify. thank you",
+      message:
+        "OTP sent to email. Please verify. thank you from testing branch",
       email: user.email,
     });
   } catch (error) {
