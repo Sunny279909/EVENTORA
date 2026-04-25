@@ -33,7 +33,7 @@ exports.register = async (req, res) => {
     await sendOTPEmail(email, otp, "account_verification");
 
     res.status(201).json({
-      message: "OTP sent to email. Please verify.",
+      message: "OTP sent to email. Please verify. thank you",
       email: user.email,
     });
   } catch (error) {
@@ -63,13 +63,11 @@ exports.login = async (req, res) => {
         action: "account_verification",
       });
       await sendOTPEmail(user.email, otp, "account_verification");
-      return res
-        .status(403)
-        .json({
-          message: "Account not verified",
-          needsVerification: true,
-          email: user.email,
-        });
+      return res.status(403).json({
+        message: "Account not verified",
+        needsVerification: true,
+        email: user.email,
+      });
     }
 
     res.json({
