@@ -1,116 +1,87 @@
+const authService = require("../services/authService");
+const AppError = require("../utils/AppError");
 const User = require("../models/User");
-const OTP = require("../models/OTP");
-const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { sendOTPEmail } = require("../utils/email");
 
-const generateOTP = () =>
-  Math.floor(100000 + Math.random() * 900000).toString();
+const {
+  registerSchema,
+  loginSchema,
+  verifyOTPSchema,
+} = require("../validators/authValidator");
 
-const generateToken = (id, role) => {
-  return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: "30d" });
-};
-
-exports.register = async (req, res) => {
+// ================== REGISTER ==================
+exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, role } = req.body;
-    let user = await User.findOne({ email });
-    if (user) return res.status(400).json({ message: "User already exists 4" });
+    const { error } = registerSchema.validate(req.body);
+    if (error) throw new AppError(error.details[0].message, 400);
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    user = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      role: "user", // Hardcoded to prevent frontend passing role
-      isVerified: false,
-    });
-
-    const otp = generateOTP();
-    await OTP.create({ email, otp, action: "account_verification" });
-    await sendOTPEmail(email, otp, "account_verification");
+    const result = await authService.registerUser(req.body);
 
     res.status(201).json({
-      message:
-        "OTP sent to email. Please verify. thank you from testing branch 2",
-      email: user.email,
+      message: "OTP sent to email. Please verify",
+      ...result,
     });
-  } catch (error) {
-    res.status(500).json({ message: "Server Error", error: error.message });
+  } catch (err) {
+    next(err);
   }
 };
 
-exports.login = async (req, res) => {
+// ================== LOGIN ==================
+exports.login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "Invalid credentials" });
+    const { error } = loginSchema.validate(req.body);
+    if (error) throw new AppError(error.details[0].message, 400);
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      return res.status(400).json({ message: "Invalid credentials" });
+    const result = await authService.loginUser(req.body);
 
-    if (!user.isVerified && user.role !== "admin") {
-      const otp = generateOTP();
-      await OTP.findOneAndDelete({
-        email: user.email,
-        action: "account_verification",
-      });
-      await OTP.create({
-        email: user.email,
-        otp,
-        action: "account_verification",
-      });
-      await sendOTPEmail(user.email, otp, "account_verification");
+    if (result.needsVerification) {
       return res.status(403).json({
         message: "Account not verified",
-        needsVerification: true,
-        email: user.email,
+        ...result,
       });
     }
 
-    res.json({
-      _id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      token: generateToken(user.id, user.role),
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Server Error", error: error.message });
+    res.json(result);
+  } catch (err) {
+    next(err);
   }
 };
 
-exports.verifyOTP = async (req, res) => {
+// ================== VERIFY OTP ==================
+exports.verifyOTP = async (req, res, next) => {
   try {
-    const { email, otp } = req.body;
-    const validOTP = await OTP.findOne({
-      email,
-      otp,
-      action: "account_verification",
-    });
+    const { error } = verifyOTPSchema.validate(req.body);
+    if (error) throw new AppError(error.details[0].message, 400);
 
-    if (!validOTP) {
-      return res.status(400).json({ message: "Invalid or expired OTP" });
+    const result = await authService.verifyUserOTP(req.body);
+
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ================== REFRESH TOKEN ==================
+exports.refreshToken = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      throw new AppError("Refresh token required", 400);
     }
 
-    const user = await User.findOneAndUpdate(
-      { email },
-      { isVerified: true },
-      { new: true },
-    );
-    await OTP.deleteOne({ _id: validOTP._id }); // Delete OTP after usage
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
-    res.json({
-      _id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      token: generateToken(user.id, user.role),
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Server Error" });
+    const user = await User.findById(decoded.id);
+
+    if (!user || user.refreshToken !== refreshToken) {
+      throw new AppError("Invalid refresh token", 401);
+    }
+
+    const newAccessToken = authService.generateAccessToken(user.id, user.role);
+
+    res.json({ accessToken: newAccessToken });
+  } catch (err) {
+    next(err);
   }
 };

@@ -5,15 +5,15 @@ dotenv.config();
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
+    user: process.env.USER_EMAIL,
+    pass: process.env.USER_PASSWORD,
   },
 });
 
 const sendBookingEmail = async (userEmail, userName, eventTitle) => {
   try {
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: process.env.USER_EMAIL,
       to: userEmail,
       subject: `Booking Confirmed: ${eventTitle}`,
       html: `<p>Hi ${userName},</p>
@@ -28,7 +28,7 @@ const sendBookingEmail = async (userEmail, userName, eventTitle) => {
   }
 };
 
-const sendOTPEmail = async (userEmail, options, type) => {
+const sendOTPEmail = async (userEmail, otp, type) => {
   try {
     const title =
       type === "account_verification"
@@ -57,3 +57,5 @@ const sendOTPEmail = async (userEmail, options, type) => {
     console.error("Error sending OTP email:", error);
   }
 };
+
+module.exports = { sendBookingEmail, sendOTPEmail };

@@ -1,9 +1,17 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { register, login, verifyOTP } = require('../controllers/authController');
+const {
+  register,
+  login,
+  verifyOTP,
+  refreshToken,
+} = require("../controllers/authController");
 
-router.post('/register', register);
-router.post('/login', login);
-router.post('/verify-otp', verifyOTP);
+const { loginLimiter, otpLimiter } = require("../middleware/rateLimit");
+
+router.post("/register", otpLimiter, register);
+router.post("/login", loginLimiter, login);
+router.post("/verify-otp", otpLimiter, verifyOTP);
+router.post("/refresh", refreshToken);
 
 module.exports = router;

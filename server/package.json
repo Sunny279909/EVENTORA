@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
+    "worker": "node workers/emailWorker.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -16,14 +17,23 @@
   "description": "",
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "bullmq": "^5.76.5",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.5.0",
+    "ioredis": "^5.10.1",
+    "joi": "^18.1.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.5.0",
-    "nodemailer": "^8.0.5"
+    "nodemailer": "^8.0.5",
+    "redis": "^5.12.1",
+    "winston": "^3.19.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
