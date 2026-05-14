@@ -27,7 +27,7 @@ mongoose
     console.error("Database connection error:", err.message);
     process.exit(1);
   });
-
+console.log("AUTO DEPLOY TEST");
 const PORT = process.env.PORT || 1000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
