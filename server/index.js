@@ -14,6 +14,16 @@ const app = express();
 app.use(cors());
 app.use("/api", apiLimiter);
 app.use(express.json());
+
+// Testing route
+app.get("/api/test", (req, res) => {
+  res.json({
+    status: "OK",
+    message: "Test route is working",
+    timestamp: new Date(),
+  });
+});
+
 //ROUTES
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
